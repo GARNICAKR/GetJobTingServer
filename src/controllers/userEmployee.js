@@ -168,6 +168,7 @@ module.exports = {
           state: state,
           city: city,
         };
+        let auxSkills=JSON.parse(skills)
        const Employee= {
           name,
           last_name,
@@ -185,7 +186,7 @@ module.exports = {
         };
         res.json(data);
       } catch (error) {
-        return res.status(500).json({ error: 'Failed to send message' });
+        // return res.status(500).json({ error: error });
       }
     }
   },
