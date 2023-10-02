@@ -1,7 +1,7 @@
 const Aplicants=require("../models/Aplicants");
 const Jobs = require("../models/Jobs");
 const UserEmployee = require("../models/UsersEmployee");
-const { Publish } = require("../helpers/rabbitMQ");
+const UserCompany = require("../models/userCompany");
 const mongoose = require('mongoose');
 module.exports={
     newAplicante:async(req,res)=>{
@@ -30,53 +30,43 @@ module.exports={
                 const job=await Jobs.findById(idJob);
                 const currentDate = new Date();
                 const formattedDate = currentDate.toISOString();
-                const  headers={
-                    tabla:"Aplicant",
-                    peticion:"Edit",
-                    'x-match':'all'
-                    };
                     const _id=aplicants._id;
-                    let Employee={
+                    const Employee={
                         idEmployee:idEmployee,
                         status:"Recibido",
                         fecha:formattedDate
                     }
-                    Publish(headers,{
-                        _id,
-                        Employee
-                    });
-                    const  headers1={
-                        tabla:"UserEmployee",
-                        peticion:"AddPostulation",
-                        'x-match':'all'
-                        };
-                        
-                        let idJobs={
+                    await Aplicants.findByIdAndUpdate(_id, { $push: { idsEmployee: Employee}});
+
+                        const idJobs={
                             idJob:idJob,
                             status:"Enviado",
                             fecha:formattedDate
                         }
                         
-                        Publish(headers1,{
-                            idEmployee,
-                            idJobs,
-                            job:JSON.parse(sendJob)
-                        });
-                        const  headers2={
-                            tabla:"UserCompany",
-                            peticion:"AddNotifyC",
-                            'x-match':'all'
-                            };
-                            let notificacion={
+                        const interesesJob=JSON.parse(sendJob)
+                        await UserEmployee.findByIdAndUpdate(idEmployee,{$push:{postulations:idJobs}})
+                        await UserEmployee.findByIdAndUpdate(idEmployee,{
+                          $push:{
+                            intereses:{
+                              $each: [interesesJob],
+                              $slice: -20
+                            }
+                          }})
+                            const notificacion={
                                 notificacion:"Se postulo alguien nuevo",
                                 state:"No Visto",
                                 job:job.title,
                                 idJob:job._id,
                             }
-                            Publish(headers2,{
-                                _id:job.idUserCompany,
-                                notification:notificacion
-                            }); 
+                            await UserCompany.findByIdAndUpdate(job.idUserCompany, {
+                                $push: {
+                                    notifications: {
+                                        $each: [notificacion],
+                                        $slice: -40
+                                    }
+                                }
+                            });
                         let data={
                             ok:"Postulado Correctamente"
                         }
@@ -93,15 +83,9 @@ module.exports={
     
     deleteAplicante:async(req,res)=>{
         const {idJob,idEmployee}=req.body;
-        const  headers={
-            tabla:"Aplicant",
-            peticion:"DeleteEmployee",
-            'x-match':'all'
-            };
-            Publish(headers,{
-                idJob,
-                idEmployee
-            });
+            const aplicants = await Aplicants.findOne({ idJobs:idJob });
+            aplicants.idsEmployee = aplicants.idsEmployee.filter(item => item.idEmployee !== idEmployee);
+            await aplicants.save();
         res.send("OK")
     },
 

@@ -350,8 +350,6 @@ RabbitMQ.Consume = async () => {
                   console.log(`Received message from "${queue}" UserEmployee AddPostulation`);
                   
                   await UserEmployee.findByIdAndUpdate(content.idEmployee,{$push:{postulations:content.idJobs}})
-                  // await UserEmployee.findByIdAndUpdate(content.idEmployee,{$push:{intereses:content.job}})
-
                   await UserEmployee.findByIdAndUpdate(content.idEmployee,{
                     $push:{
                       intereses:{

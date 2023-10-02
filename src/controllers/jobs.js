@@ -49,38 +49,41 @@ module.exports = {
       }
     res.send(data)
     } else {
-      const about_job = {
-        description: description,
-        sector: sector,
-        schedule: schedule,
-        modality: modality,
-        conocimientos: conocimientos,
-        requisitos: requisitos,
-        responsabilidades: responsabilidades,
-      };
-      const location = {
-        country: country,
-        state: state,
-        city: city,
-      };
-      const headers = {
-        tabla: "Jobs",
-        peticion: "New",
-        "x-match": "all",
-      };
-      Publish(headers, {
-        idUserCompany,
-        title,
-        about_job,
-        pay,
-        vacancies,
-        location,
-      });
-
-      let data={
-        ok:"Postulado Correctamente"
-    }
-    res.send(data);
+      try {
+        const about_job = {
+          description: description,
+          sector: sector,
+          schedule: schedule,
+          modality: modality,
+          conocimientos: conocimientos,
+          requisitos: requisitos,
+          responsabilidades: responsabilidades,
+        };
+        const location = {
+          country: country,
+          state: state,
+          city: city,
+        };
+        const job={
+          idUserCompany,
+          title,
+          about_job,
+          pay,
+          vacancies,
+          location,
+        };
+        const newJob = new Jobs(job);
+        await newJob.save();
+        const newAplicant = new Aplicants({ idJobs: content.idJob,titleJobs:content.title });
+        await newAplicant.save();
+        let data={
+          ok:"Postulado Correctamente"
+      }
+      res.send(data);
+      } catch (error) {
+        return res.status(500).json({ error: 'Failed to send message' });
+      }
+     
     }
   },
   Fedit: async (req, res) => {
@@ -130,40 +133,38 @@ module.exports = {
       }
     res.send(data)
     } else {
-      const about_job = {
-        description: description,
-        sector: sector,
-        schedule: schedule,
-        modality: modality,
-        conocimientos: conocimientos,
-        requisitos: requisitos,
-        responsabilidades: responsabilidades,
-      };
-      const location = {
-        country: country,
-        state: state,
-        city: city,
-      };
-      const headers = {
-        tabla: "Jobs",
-        peticion: "Edit",
-        "x-match": "all",
-      };
-      Publish(headers, {
-        _id,
-        job: {
+      try {
+        const about_job = {
+          description: description,
+          sector: sector,
+          schedule: schedule,
+          modality: modality,
+          conocimientos: conocimientos,
+          requisitos: requisitos,
+          responsabilidades: responsabilidades,
+        };
+        const location = {
+          country: country,
+          state: state,
+          city: city,
+        };
+        const job={
           title,
           about_job,
           pay,
           vacancies,
           location,
-        },
-      });
-
-      let data={
-        ok:"Guardado"
+        }
+        await Jobs.findByIdAndUpdate(_id, job);
+  
+        let data={
+          ok:"Guardado"
+        }
+      res.send(data)
+      } catch (error) {
+        return res.status(500).json({ error: 'Failed to send message' });
       }
-    res.send(data)
+      
     }
   },
   delete: async (req, res) => {

@@ -67,32 +67,42 @@ module.exports = {
               };
               res.send(data);
             } else {
-              const CV = req.files.CV[0].buffer
+              try {
+                const CV = req.files.CV[0].buffer
               const photo = req.files.photo[0].buffer
-              const headers = {
-                tabla: "UserEmployee",
-                peticion: "New",
-                "x-match": "all",
-              };
-              Publish(headers, {
-                user: {
-                  mail,
-                  password,
-                  type_user,
-                },
-
-                name,
-                last_name,
-                phone_number,
-                location,
-                sector,
-                CV,
-                photo,
+                        
+              const user= {
+                mail,
+                password,
+                type_user,
+              }
+              const newUser = new User(user);
+              newUser.password = await newUser.encryptPassword(content.user.password);
+              
+              await newUser.save();
+              const newUserEmployee = new UserEmployee({
+                idUser: newUser._id,
+                name:name,
+                last_name:last_name,
+                phone_number:phone_number,
+                location:location,
+                sector:sector,
+                university:"",
+                carrera:"",
+                introduction:"",
+                CV:CV,
+                photo:photo
+                
               });
+              await newUserEmployee.save();
                 let data={
                   ok:"ok"
                 }            
               res.send(data);
+              } catch (error) {
+                return res.status(500).json({ error: 'Failed to send message' });
+              }
+              
             }
 
           }
@@ -152,42 +162,31 @@ module.exports = {
       };
       res.json(data);
     } else {
-      const location = {
-        country: country,
-        state: state,
-        city: city,
-      };
-      const headers = {
-        tabla: "UserEmployee",
-        peticion: "Edit",
-        "x-match": "all",
-      };
-      let auxSkills=JSON.parse(skills)
-      let Msj;
       try {
-        Msj = await Publish(headers, {
-          _id: req.params.id,
-          Employee: {
-            name,
-            last_name,
-            phone_number,
-            location,
-            university,
-            carrera,
-            introduction,
-            sector,
-            skills:auxSkills
-          },
-        });
+        const location = {
+          country: country,
+          state: state,
+          city: city,
+        };
+       const Employee= {
+          name,
+          last_name,
+          phone_number,
+          location,
+          university,
+          carrera,
+          introduction,
+          sector,
+          skills:auxSkills
+        }
+        await UserEmployee.findByIdAndUpdate(req.params.id,Employee);
+        let data = {
+          ok: "Msj"
+        };
+        res.json(data);
       } catch (error) {
-        console.error('Error sending message:', error);
         return res.status(500).json({ error: 'Failed to send message' });
       }
-    
-      let data = {
-        ok: "Msj"
-      };
-      res.json(data);
     }
   },
   showPostulations: async (req, res) => {
@@ -215,21 +214,19 @@ module.exports = {
     res.json(postulaciones);
   },
   deletePostulation: async (req,res)=>{
-
     const {idEmployee,idJob}=req.body;
-    const  headers={
-      tabla:"UserEmployee",
-      peticion:"DeletePostulation",
-      'x-match':'all'
-    };
-    Publish(headers,{
-      idEmployee,
-      idJob,
-    });     
-    let data={
-      ok:"ok"
+    try {
+      await UserEmployee.findByIdAndUpdate(idEmployee, {
+        $pull: { postulations: { idJob: idJob } }
+      });   
+      let data={
+        ok:"ok"
+      }
+      res.send(data);  
+    } catch (error) {
+      return res.status(500).json({ error: 'Failed to send message' });
     }
-    res.send(data);   
+ 
   },
   editPhoto:async(req,res)=>{
     let fileValidation=files(req.file,"photo");
@@ -239,22 +236,17 @@ module.exports = {
             }
             res.send(data)
           }else{
-            const photo = req.file.buffer
-              const  headers={
-                tabla:"UserEmployee",
-                peticion:"EditPhoto",
-                'x-match':'all'
-              };
+            try {
+              const photo = req.file.buffer
               let auxPhoto= photo.toString("base64");   
-            
-              Publish(headers,{
-                _id:req.params.id,
-                photo
-              });
+              await UserEmployee.findByIdAndUpdate(req.params.id,{photo:photo});
               let data = {
                 photo:auxPhoto
               };
               res.json(data);
+            } catch (error) {
+              return res.status(500).json({ error: 'Failed to send message' });
+            }
           }
   },
   editCV:async(req,res)=>{
@@ -265,21 +257,18 @@ module.exports = {
             }
             res.send(data)
           }else{
-            const CV = req.file.buffer
+            try {
+              const CV = req.file.buffer
               let auxCV= CV.toString("base64");   
-              const  headers={
-                tabla:"UserEmployee",
-                peticion:"EditCV",
-                'x-match':'all'
-              };
-              Publish(headers,{
-                _id:req.params.id,
-                CV
-              });
+              await UserEmployee.findByIdAndUpdate(req.params.id,{CV:CV});
               let data = {
                 CV:auxCV
               };
               res.json(data);
+            } catch (error) {
+              return res.status(500).json({ error: 'Failed to send message' });
+            }
+
           }
 
   },
@@ -346,13 +335,16 @@ module.exports = {
   SeeNotify:async (req,res)=>{
     try {
       if (mongoose.isValidObjectId(req.params.id)) {
-        const  headers={
-          tabla:"UserEmployee",
-          peticion:"SeeNotifyE",
-          'x-match':'all'
-        };
-        Publish(headers,{
-          _id:req.params.id,
+       await UserEmployee.findOneAndUpdate(
+          { _id: req.params.id }, 
+          { $set: { 'notifications.$[elem].state': 'Visto' } }, 
+          {
+            arrayFilters: [{ 'elem.state': 'No Visto' }], 
+            multi: true, 
+            new: true 
+          },
+        ).catch(err => {
+          console.error("Error al actualizar las notificaciones:", err);
         });
         let data={
           ok:"Modificado"
@@ -366,6 +358,7 @@ module.exports = {
       }
     } catch (error) {
       console.error(error);
+      return res.status(500).json({ error: 'Failed to send message' });
     }
   },
 };
