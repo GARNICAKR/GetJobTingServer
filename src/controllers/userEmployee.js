@@ -229,7 +229,6 @@ module.exports = {
     res.send(data);   
   },
   editPhoto:async(req,res)=>{
-
     let fileValidation=files(req.file,"photo");
           if(fileValidation){
             let data={
@@ -237,8 +236,7 @@ module.exports = {
             }
             res.send(data)
           }else{
-            const photo = fs.readFileSync(`uploads/${req.file.filename}`);
-              fs.unlinkSync(`uploads/${req.file.filename}`);  
+            const photo = req.file.buffer
               const  headers={
                 tabla:"UserEmployee",
                 peticion:"EditPhoto",

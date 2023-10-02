@@ -10,15 +10,8 @@ helpers.isAuthenticated=(req,res,next)=>{
         res.redirect('/signin')
     }
 };
-helpers.Upload=()=>{
-    const storage=multer.diskStorage({
-        destination:function(req,file,cb){
-               cb(null,'uploads');
-           },
-           filename:function(req,file,cb){
-               cb(null,file.originalname)
-           }
-       })
-     return multer({storage})
-};
+helpers.Upload = () => {
+  const storage = multer.memoryStorage();
+  return multer({ storage });
+}
 module.exports=helpers;
