@@ -157,29 +157,28 @@ module.exports = {
         state: state,
         city: city,
       };
-      const headers = {
-        tabla: "UserEmployee",
-        peticion: "Edit",
-        "x-match": "all",
-      };
-      let auxSkills=JSON.parse(skills)
       let Msj;
-      Msj=Publish(headers, {
-        _id: req.params.id,
-        Employee: {
-          name,
-          last_name,
-          phone_number,
-          location,
-          university,
-          carrera,
-          introduction,
-          sector,
-          skills:auxSkills
-        },
-      });
+      try {
+        Msj = await Publish(headers, {
+          _id: req.params.id,
+          Employee: {
+            name,
+            last_name,
+            phone_number,
+            location,
+            university,
+            carrera,
+            introduction,
+            sector,
+            skills:auxSkills
+          },
+        });
+      } catch (error) {
+        console.error('Error sending message:', error);
+        return res.status(500).json({ error: 'Failed to send message' });
+      }
       let data = {
-        ok:"Msj"
+        ok:Msj
       };
       res.json(data);
     }

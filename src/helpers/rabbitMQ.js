@@ -13,22 +13,27 @@ RabbitMQ.Publish = (headers, message) => {
   const delay = 0;
   let bandMessageSave=false;
   const sendMessage = async (connection, channel, message) => {
-    try {
-      channel.publish(
-        exchangeName,
-        routingKey,
-        Buffer.from(JSON.stringify(message)),
-        { headers, persistent: true }
-      );
-      console.log(`Sent message to "${exchangeName}" exchange`, headers);
-      return "mandado"
-    } catch (error) {
-      console.error(error);
-      throw new Error(
-        `Fail sending message to "${exchangeName}" exchange, "${headers}"`
-      );
-      
-    }
+    return new Promise((resolve, reject) => {
+      try {
+        channel.publish(
+          exchangeName,
+          routingKey,
+          Buffer.from(JSON.stringify(message)),
+          { headers, persistent: true },
+          (err, ok) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(ok);
+            }
+          }
+        );
+        console.log(`Sent message to "${exchangeName}" exchange`, headers);
+      } catch (error) {
+        console.error(error);
+        reject(new Error(`Fail sending message to "${exchangeName}" exchange, "${headers}"`));
+      }
+    });
   };
 
   const backOffMinTime1MaxTime4 = backOff(1)(4);
