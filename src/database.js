@@ -1,5 +1,5 @@
 const mongose =require('mongoose');
-require('dotenv').config();
+// require('dotenv').config();
 //mongose.connect('mongodb://localhost/GetJobTing')
 function Conecetar(){
     try {
