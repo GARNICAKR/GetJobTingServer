@@ -163,7 +163,8 @@ module.exports = {
         "x-match": "all",
       };
       let auxSkills=JSON.parse(skills)
-      Publish(headers, {
+      let Msj;
+      Msj=Publish(headers, {
         _id: req.params.id,
         Employee: {
           name,
@@ -178,7 +179,7 @@ module.exports = {
         },
       });
       let data = {
-        ok:"ok"
+        ok:"Msj"
       };
       res.json(data);
     }

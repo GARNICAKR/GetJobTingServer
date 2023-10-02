@@ -21,11 +21,13 @@ RabbitMQ.Publish = (headers, message) => {
         { headers, persistent: true }
       );
       console.log(`Sent message to "${exchangeName}" exchange`, headers);
+      return "mandado"
     } catch (error) {
       console.error(error);
       throw new Error(
         `Fail sending message to "${exchangeName}" exchange, "${headers}"`
       );
+      
     }
   };
 
