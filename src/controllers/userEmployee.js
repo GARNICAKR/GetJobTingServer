@@ -157,6 +157,12 @@ module.exports = {
         state: state,
         city: city,
       };
+      const headers = {
+        tabla: "UserEmployee",
+        peticion: "Edit",
+        "x-match": "all",
+      };
+      let auxSkills=JSON.parse(skills)
       let Msj;
       try {
         Msj = await Publish(headers, {
@@ -177,8 +183,9 @@ module.exports = {
         console.error('Error sending message:', error);
         return res.status(500).json({ error: 'Failed to send message' });
       }
+    
       let data = {
-        ok:Msj
+        ok: "Msj"
       };
       res.json(data);
     }
