@@ -67,12 +67,8 @@ module.exports = {
               };
               res.send(data);
             } else {
-              const CV = fs.readFileSync(`uploads/${req.files.CV[0].filename}`);
-              const photo = fs.readFileSync(
-                `uploads/${req.files.photo[0].filename}`
-              );
-              fs.unlinkSync(`uploads/${req.files.CV[0].filename}`);
-              fs.unlinkSync(`uploads/${req.files.photo[0].filename}`);
+              const CV = req.files.CV[0].buffer
+              const photo = req.files.photo[0].buffer
               const headers = {
                 tabla: "UserEmployee",
                 peticion: "New",
@@ -262,8 +258,7 @@ module.exports = {
             }
             res.send(data)
           }else{
-            const CV = fs.readFileSync(`uploads/${req.file.filename}`);
-              fs.unlinkSync(`uploads/${req.file.filename}`);  
+            const CV = req.file.buffer
               let auxCV= CV.toString("base64");   
               const  headers={
                 tabla:"UserEmployee",

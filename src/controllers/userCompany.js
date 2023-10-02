@@ -5,7 +5,6 @@ const { userValidation, emptydatas,files } = require("../helpers/validations");
 const { Publish } = require("../helpers/rabbitMQ");
 const mongoose = require('mongoose');
 const fs = require("fs");
-const { group } = require("console");
 module.exports = {
   Create: async (req, res) => {
     const {
@@ -61,8 +60,7 @@ module.exports = {
             res.send(data)
           }else{
             try {
-              const logo = fs.readFileSync(`uploads/${req.file.filename}`);
-              fs.unlinkSync(`uploads/${req.file.filename}`);  
+              const logo = req.file.buffer;
               const  headers={
                 tabla:"UserCompany",
                 peticion:"New",
@@ -269,8 +267,7 @@ res.send(data);
             }
             res.send(data)
           }else{
-            const logo = fs.readFileSync(`uploads/${req.file.filename}`);
-              fs.unlinkSync(`uploads/${req.file.filename}`);  
+            const logo = req.file.buffer 
               const  headers={
                 tabla:"UserCompany",
                 peticion:"EditLogo",
