@@ -74,14 +74,14 @@ module.exports = {
         };
         const newJob = new Jobs(job);
         await newJob.save();
-        const newAplicant = new Aplicants({ idJobs: idJob,titleJobs:title });
+        const newAplicant = new Aplicants({ idJobs: newJob._id,titleJobs:title });
         await newAplicant.save();
         let data={
           ok:"Postulado Correctamente"
       }
       res.send(data);
       } catch (error) {
-        return res.status(500).json({ error: 'Failed to send message' });
+        return res.status(500).json({ error: error });
       }
      
     }
