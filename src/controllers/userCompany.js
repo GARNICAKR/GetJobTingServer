@@ -69,7 +69,7 @@ module.exports = {
                 type_user
                }
               const newUser = new User(user);
-              newUser.password = await newUser.encryptPassword(content.user.password);
+              newUser.password = await newUser.encryptPassword(user.password);
               await newUser.save();
             const newUserCompany = new UserCompany({
               idUser: newUser._id,
