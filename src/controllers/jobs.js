@@ -74,7 +74,7 @@ module.exports = {
         };
         const newJob = new Jobs(job);
         await newJob.save();
-        const newAplicant = new Aplicants({ idJobs: content.idJob,titleJobs:content.title });
+        const newAplicant = new Aplicants({ idJobs: idJob,titleJobs:title });
         await newAplicant.save();
         let data={
           ok:"Postulado Correctamente"
