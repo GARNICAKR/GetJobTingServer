@@ -1,6 +1,8 @@
 const UserCompany = require("../models/userCompany");
-
+const User = require("../models/Users");
 const Jobs = require("../models/Jobs");
+const Aplicants=require("../models/Aplicants");
+const UserEmployee = require("../models/UsersEmployee");
 const { userValidation, emptydatas,files } = require("../helpers/validations");
 const { Publish } = require("../helpers/rabbitMQ");
 const mongoose = require('mongoose');
@@ -61,33 +63,30 @@ module.exports = {
           }else{
             try {
               const logo = req.file.buffer;
-              const  headers={
-                tabla:"UserCompany",
-                peticion:"New",
-                'x-match':'all'
-              };
-              Publish(headers,{
-               user:{
+              const user={
                 mail,
                 password,
                 type_user
-               },
-                nameCompany,
-                description,
-                rfc,
-                sat,
-                location,
-                logo,
-              });
+               }
+              const newUser = new User(user);
+              newUser.password = await newUser.encryptPassword(content.user.password);
+              await newUser.save();
+            const newUserCompany = new UserCompany({
+              idUser: newUser._id,
+              nameCompany:nameCompany,
+              description:description,
+              rfc:rfc,
+              sat:sat,
+              location:location,
+              logo:logo,
+            });
+            await newUserCompany.save();
               let data={
                 ok:"ok"
               }     
             res.send(data);
             } catch (error) {
-              let data={
-                error:error
-              }
-              res.send(data);
+              return res.status(500).json({ error: error});
             }
 
           }  
@@ -144,29 +143,28 @@ module.exports = {
       }
       res.send(data);
     } else {
+      try {
         const location = {
-            country: country,
-            state: state,
-            city: city,
-            
-          };
-        const  headers={
-            tabla:"UserCompany",
-            peticion:"Edit",
-            'x-match':'all'
-          };
-          Publish(headers,{
-            _id:req.params.id,
-            nameCompany,
-            description,
-            rfc,
-            sat,
-            location
-          });
-          let data={
-            ok:"ok"
-          }     
-      res.send(data);
+          country: country,
+          state: state,
+          city: city,
+          
+        };
+        await UserCompany.findByIdAndUpdate(req.params.id, {
+          nameCompany:nameCompany,
+          description:description,
+          rfc:rfc,
+          sat:sat,
+          location:location,
+        });
+        let data={
+          ok:"ok"
+        }     
+    res.send(data);
+      } catch (error) {
+        return res.status(500).json({ error: error});
+      }
+ 
     }
    
   },
@@ -203,87 +201,75 @@ module.exports = {
   changeStatus:async(req,res)=>{
     try {
     const {idJob,idEmployee,status}=req.body;
-    
     const job=await Jobs.findById(idJob);
     const currentDate = new Date();
     const formattedDate = currentDate.toISOString();
-    const  headers={
-      tabla:"Aplicant",
-      peticion:"EditStatusAp",
-      'x-match':'all'
-      };
+      const aplicant = await Aplicants.findOne({ idJobs:idJob });
 
-      Publish(headers,{
-          idEmployee,
-          idJob:idJob,
-          status:status,
-          fecha:formattedDate
+      aplicant.idsEmployee = aplicant.idsEmployee.map(item => {
+        if (item.idEmployee === idEmployee) {
+          return { idEmployee: item.idEmployee, status: status, fecha: formattedDate};
+        } else {
+          return item;
+        }
       });
-      const  headers1={
-        tabla:"UserEmployee",
-        peticion:"EditStatusE",
-        'x-match':'all'
-        };
-      
-        
-        Publish(headers1,{
-            idEmployee,
-            idJob,
-            status:status,
-            fecha:formattedDate
-        });
-        const  headers2={
-          tabla:"UserEmployee",
-          peticion:"AddNotifyE",
-          'x-match':'all'
-          };
-          let notificacion={
+       await aplicant.save();
+
+        const employee = await UserEmployee.findById(idEmployee);
+        employee.postulations = employee.postulations.map(item => {
+          if (item.idJob === idJob) {
+            return { idJob: item.idJob, status: status, fecha: formattedDate};
+          } else {
+            return item;
+          }
+        });   
+         await employee.save();
+
+          const notificacion={
             notificacion:"Hubo un cambio en tu postulacion",
             state:"No Visto",
             job:job.title,
             idJob:job._id,
         }
-          Publish(headers2,{
-              _id:idEmployee,
-              notification:notificacion
-          }); 
+
+          await UserEmployee.findByIdAndUpdate(idEmployee,{
+            $push:{
+            notifications: {
+            $each: [notificacion],
+            $slice: -40
+        }}})
       let data={
           ok:"Modificado Correctamente"
            }
 res.send(data);
-      
     } catch (error) {
       console.error(error)
+      return res.status(500).json({ error: error});
     }
     
     
   }, 
   editLogo:async(req,res)=>{
-
-    let fileValidation=files(req.file,"photo");
-          if(fileValidation){
-            let data={
-              error:fileValidation
-            }
-            res.send(data)
-          }else{
-            const logo = req.file.buffer 
-              const  headers={
-                tabla:"UserCompany",
-                peticion:"EditLogo",
-                'x-match':'all'
-              };
-              let auxlogo= logo.toString("base64");   
-            
-              Publish(headers,{
-                _id:req.params.id,
-                logo
-              });
-              let data = {
-                logo:auxlogo
-              };
-              res.json(data);
+      try {
+        let fileValidation=files(req.file,"photo");
+        if(fileValidation){
+          let data={
+            error:fileValidation
           }
+          res.send(data)
+        }else{
+          const logo = req.file.buffer 
+            let auxlogo= logo.toString("base64");   
+            await UserCompany.findByIdAndUpdate(req.params.id,{logo:logo});
+            let data = {
+              logo:auxlogo
+            };
+            res.json(data);
+        }
+      } catch (error) {
+        return res.status(500).json({ error: error});
+      }
+   
   },
   getNotify:async (req,res)=>{
     try {
@@ -348,13 +334,16 @@ res.send(data);
      
     try {
       if (mongoose.isValidObjectId(req.params.id)) {
-        const  headers={
-          tabla:"UserCompany",
-          peticion:"SeeNotifyC",
-          'x-match':'all'
-        };
-        Publish(headers,{
-          _id:req.params.id,
+        UserCompany.findOneAndUpdate(
+          { _id: req.params.id }, 
+          { $set: { 'notifications.$[elem].state': 'Visto' } }, 
+          {
+            arrayFilters: [{ 'elem.state': 'No Visto' }], 
+            multi: true, 
+            new: true 
+          },
+        ).catch(err => {
+          console.error("Error al actualizar las notificaciones:", err);
         });
         let data={
           ok:"Modificado"
@@ -367,7 +356,8 @@ res.send(data);
         res.send(data);
       }
     } catch (error) {
-      console.error(error);
+
+      return res.status(500).json({ error: error});
     }
   },
 
